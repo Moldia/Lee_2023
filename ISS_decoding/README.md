@@ -4,18 +4,3 @@ The module contains function to first format our preprocessed images to a starfi
 In the next steps we then proceed to the actual decoding of the data from the SpaceTx images, and a further set of functions allows the user to plot the decoding results and filter the data appropriately.
 
 
-Installation: You can download installation.sh and just execute it. This will install the following modules:
-
-`ISS_preprocessing`
-
-`ISS_decoding`
-
-`ISS_postprocessing`
-
-`ISS_deconvolution`
-
-`ISS_CARE`
-
-`ISS_RNA_probedesign`
-
-Please refer to the respective `readme.md` files for further instructions.

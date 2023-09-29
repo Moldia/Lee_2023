@@ -2,18 +2,4 @@ The `ISS_preprocessing` module aims to transform files extracted from the micros
 
 
 
-Installation: You can download installation.sh and just execute it. This will install the following modules:
 
-`ISS_preprocessing`
-
-`ISS_decoding`
-
-`ISS_postprocessing`
-
-`ISS_deconvolution`
-
-`ISS_CARE`
-
-`ISS_RNA_probedesign`
-
-Please refer to the respective `readme.md` files for further instructions.
