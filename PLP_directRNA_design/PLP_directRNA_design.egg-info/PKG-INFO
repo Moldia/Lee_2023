@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: PLP-directRNA-design
+Version: 0.1.1
+Summary: Package to design Padlock probes based on a reference transcriptome
+Home-page: UNKNOWN
+Author: Sergio Marco Salas
+Author-email: <sergiomarco.salas@scilifelab.se>
+License: UNKNOWN
+Description: 
+        # PLP_directRNA_design
+        Package used to create padlock probes that target RNA directly. It can be used for any gene and species.
+        
+Keywords: python,spatial transcriptomics,spatial resolved transcriptomics,in situ sequencing,ISS,padlock probe design
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Researchers
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Description-Content-Type: text/markdown
