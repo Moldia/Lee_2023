@@ -1,0 +1,9 @@
+scanpy
+cellpose==0.6.1
+squidpy
+tangram-sc
+pandas
+numpy
+scikit-image
+scipy
+pandas

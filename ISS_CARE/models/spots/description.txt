@@ -1,0 +1,5 @@
+the model named 'spots' is a copy of the 'binned_nondw_to_dw__100epoch3NOV' model and it is our best performer on spots.
+It has been trained on mouse+humans+fly triads of images including:
+- raw data from the Zeiss and Leica microscopes taken at 20x or 40x
+- same images deconvolved by Deconwolf, 100 iterations
+- raw images binned 2x2 to induce artificial degradation

@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: ISS-processing
+Version: 0.0.0
+Summary: Package used to preprocess and process ISS data
+Home-page: UNKNOWN
+Author: Christoffer Mattsson Langseth
+Author-email: <christoffer.langseth@scilifelab.se>
+License: UNKNOWN
+Keywords: python,spatial transcriptomics,spatial resolved transcriptomics,in situ sequencing,ISS,decoding
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Researchers
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Operating System :: Microsoft :: Windows
+Description-Content-Type: text/markdown
+
+
+ISS_processing is a Python package used to process In situ sequencinig data. This includes the preprocessing of the data, including alignment and stitching (using [ASHLAR](https://github.com/labsyspharm/ashlar)) and retiling. In addition, there is also a starfish decoding module for formatting of aligned and retiled data. 
+

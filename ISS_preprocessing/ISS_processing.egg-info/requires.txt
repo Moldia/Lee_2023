@@ -1,0 +1,13 @@
+tifffile
+scikit-image==0.16.2
+numpy
+pandas
+opencv-python
+setuptools
+networkx
+scikit-learn
+matplotlib
+tqdm
+ashlar
+pyjnius==1.3.0
+opencv-python
