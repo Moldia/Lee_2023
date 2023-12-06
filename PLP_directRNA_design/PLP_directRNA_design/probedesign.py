@@ -554,6 +554,8 @@ def build_plps(path,specific_seqs_final,L_probe_library,plp_length,how='start',o
     for pad in probes.itertuples():
         capt = pad.sequence
         rnabase = (capt[-1])
+        if rnabase == 'T':
+        	rnabase = 'U'  # Change 'T' to 'U'
         plp = (capt [0:-1]+"r"+rnabase)
         rnaprobes.append (plp)
         #print (plp)
