@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    install_requires=['pandas>=1.1.5','Bio>=1.0','numpy>=1.19.0'],
+    install_requires=['pandas==1.1.5','Bio-=1.7','numpy>=1.19.0'],
     keywords=['python', 'spatial transcriptomics', 
             'spatial resolved transcriptomics', 
             'in situ sequencing', 
