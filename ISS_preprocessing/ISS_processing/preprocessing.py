@@ -295,7 +295,7 @@ def leica_OME_tiff(directory_base, output_directory):
                 tile_filtered = [k for k in onlytifs if 's'+tile+'_' in k]
                 tile_filtered =  [k for k in tile_filtered if '._' not in k]
 
-                stacked = np.empty((5, 2048, 2048))
+                stacked = np.empty((len(channels), 2048, 2048))
                 for n,image_file in enumerate(sorted(tile_filtered)):
                     try: 
                         image_int = tifffile.imread(join(exported_directory,image_file))
