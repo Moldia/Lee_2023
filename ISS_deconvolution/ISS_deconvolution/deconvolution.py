@@ -78,10 +78,10 @@ def deconvolve_czi(input_file, outpath, image_dimensions=[2048, 2048], PSF_metad
     - A string indicating that processing is complete.
     """
 	
-def customcopy(src, dst):
-    if os.path.isdir(dst):
-        dst = os.path.join(dst, os.path.basename(src))
-    shutil.copyfile(src, dst)
+    def customcopy(src, dst):
+        if os.path.isdir(dst):
+            dst = os.path.join(dst, os.path.basename(src))
+        shutil.copyfile(src, dst)
 
     def cropND(img, bounding):
         start = tuple(map(lambda a, da: a//2-da//2, img.shape, bounding))
