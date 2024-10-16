@@ -2,6 +2,7 @@ name: ISS_deconvolution
 channels:
   - anaconda
   - defaults
+  - conda-forge
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=4.5=1_gnu
@@ -36,6 +37,8 @@ dependencies:
   - xz=5.2.5=h7b6447c_0
   - zeromq=4.3.3=he6710b0_3
   - zlib=1.2.11=h7f8727e_4
+  - cudatoolkit=11.2
+  - cudnn=8.1
   - pip:
     - absl-py==0.15.0
     - aicspylibczi==3.1.2
