@@ -372,6 +372,8 @@ def deconvolve_leica(input_dirs,
                                 processed_img = np.asarray(deconvolved.data).astype('uint16')
 
                             tifffile.imwrite(os.path.join(base_directory, f'Base_{base}_s{tile}_C0{channel}.tif'), processed_img)
+                            
+                            
     if mode=='exported':
         print ('Deconvolving Leica files from export mode')
         #Preprocess directory names (replace placeholders)
@@ -433,7 +435,11 @@ def deconvolve_leica(input_dirs,
                     # Extracts the first tile to calculate its Z depth
                     print ('Calculating the PSF')
                     #print (filtered_tifs)
-                    sample_tile=[f for f in filtered_tifs if f"_s0_" in f]
+                    
+                    #sample_tile=[f for f in filtered_tifs if f"_s0_" in f]
+                    sample_tile=filtered_tifs[0]
+                    
+                    
                     size_z = int(len(sample_tile) / len(PSF_metadata['channels']))
                     #print (size_z)
                     # Generate PSFs for each channel outside the tile loop
@@ -456,7 +462,7 @@ def deconvolve_leica(input_dirs,
                         print (tile)
                     #for tile in sorted(tiles_df, key=int):
                         tile_files = [f for f in filtered_tifs if f"_s{tile}" in f]
-                        print (tile_files)
+                        #print (tile_files)
                         for channel in sorted(PSF_metadata['channels']):
                             output_file_path = os.path.join(base_directory, f'Base_{base}_s{tile}_C0{channel}.tif')
 

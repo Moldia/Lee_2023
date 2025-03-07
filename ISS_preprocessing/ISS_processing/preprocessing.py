@@ -130,6 +130,7 @@ def leica_mipping(input_dirs, output_dir_prefix, image_dimension=[2048, 2048], m
     import re
     import shutil
 
+
     if mode==None:
         # Refactor input directories for compatibility (especially with Linux)
         refactored_dirs = [dir_path.replace("%20", " ") for dir_path in input_dirs]
@@ -182,7 +183,8 @@ def leica_mipping(input_dirs, output_dir_prefix, image_dimension=[2048, 2048], m
                         metadata_file = join(dir_path, 'Metadata', [file for file in os.listdir(join(dir_path, 'Metadata')) if region in file][0])
                         if not os.path.exists(join(mipped_output_dir, f"Base_{base}", 'MetaData')):
                             os.makedirs(join(mipped_output_dir, f"Base_{base}", 'MetaData'))
-                        shutil.copy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
+                        customcopy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
+                        #shutil.copy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
                     except FileExistsError:
                         pass
     
@@ -252,7 +254,8 @@ def leica_mipping(input_dirs, output_dir_prefix, image_dimension=[2048, 2048], m
                        
                         if not os.path.exists(join(mipped_output_dir, f"Base_{base}", 'MetaData')):
                             os.makedirs(join(mipped_output_dir, f"Base_{base}", 'MetaData'))
-                        shutil.copy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
+                        customcopy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
+                        #shutil.copy(metadata_file, join(mipped_output_dir, f"Base_{base}", 'MetaData'))
                     except FileExistsError:
                         pass
     
@@ -264,7 +267,7 @@ def leica_mipping(input_dirs, output_dir_prefix, image_dimension=[2048, 2048], m
                         
                         # Ensure that we don't overwrite existing files
                         if len(existing_files) < len(channels):
-                            tile_tif_files = [file for file in region_tif_files if f"{tile}--" in file]
+                            tile_tif_files = [file for file in region_tif_files if f"{tile}_" in file]
                             for channel_idx, channel in enumerate(sorted(list(channels))):
                                 channel_tif_files = [file for file in tile_tif_files if str(channel) in file]
                                 max_intensity = np.zeros(image_dimension)
@@ -312,6 +315,8 @@ def leica_OME_tiff(directory_base, output_directory):
     from tqdm import tqdm
 
     folders = os.listdir(directory_base)
+    folders = [f for f in folders if f != ".DS_Store"]
+    
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
         
@@ -600,7 +605,8 @@ def preprocessing_main_leica(input_dirs,
                             regions_to_process = 2, 
                             align_channel = 4, 
                             tile_dimension = 6000, 
-                            mip = True):
+                            mip = True,
+                            mode = None):
     """
     Main function to preprocess Leica microscopy images.
 
@@ -625,7 +631,8 @@ def preprocessing_main_leica(input_dirs,
             
             # create leica OME_tiffs
             leica_OME_tiff(directory_base = path+'/preprocessing/mipped/', 
-                                            output_directory = path+'/preprocessing/OME_tiffs/')
+                                            output_directory = path+'/preprocessing/OME_tiffs/',
+                                            mode = mode)
             
             # align and stitch images
             OME_tiffs = os.listdir(path+'/preprocessing/OME_tiffs/')
