@@ -52,7 +52,28 @@ res_lateral = resolution in xy
 res_axial = resolution in z
 '''
 
+def pad_numbers(numbers):
+    """
+    Pads single-digit numbers with zeros based on the length of the list.
 
+    Args:
+      numbers: A list of numbers.
+
+    Returns:
+      A list of numbers with appropriate zero padding.
+    """
+    length = len(numbers)
+
+    if length < 10:
+        return numbers  # No padding needed
+
+    if 10 <= length < 100:
+        padded_numbers = [f"{num:02}" for num in numbers]
+        return padded_numbers
+
+    if length >= 100:
+        padded_numbers = [f"{num:03}" for num in numbers]
+        return padded_numbers
 
 
 
@@ -402,6 +423,7 @@ def deconvolve_leica(input_dirs,
                 tiles = pd.Series(filtered_tifs).str.extract(r'_s(\d+)_')[0].dropna().astype(int)
                 tiles = sorted(tiles.unique()) 
                 #print (tiles)
+                tiles = pad_numbers(tiles)
                 #tiles_df = pd.DataFrame(tiles)
                 #tiles_df['indexNumber'] = [int(tile.split('s')[-1]) for tile in tiles_df[0]]
                 #tiles_df.sort_values(by=['indexNumber'], ascending=True, inplace=True)
@@ -435,15 +457,22 @@ def deconvolve_leica(input_dirs,
                     # Extracts the first tile to calculate its Z depth
                     print ('Calculating the PSF')
                     #print (filtered_tifs)
-                    
-                    #sample_tile=[f for f in filtered_tifs if f"_s0_" in f]
-                    sample_tile=filtered_tifs[0]
+
+                    if len(tiles)>100:
+                        sample_tile=[f for f in filtered_tifs if f"_s000_" in f]
+                    elif len(tiles)>10 and len(tiles)<100:
+                        sample_tile=[f for f in filtered_tifs if f"_s00_" in f]
+                    else:
+                        sample_tile=[f for f in filtered_tifs if f"_s0_" in f]
+                    #sample_tile=filtered_tifs[0]
+                    #print (sample_tile)
                     
                     
                     size_z = int(len(sample_tile) / len(PSF_metadata['channels']))
-                    #print (size_z)
+                    print (size_z)
                     # Generate PSFs for each channel outside the tile loop
                     psf_dict = {}
+                    
                     for channel in PSF_metadata['channels']:
                         psf_dict[channel] = fd_psf.GibsonLanni(
                             na=float(PSF_metadata['na']),
@@ -456,14 +485,16 @@ def deconvolve_leica(input_dirs,
                             size_y=image_dimensions[1],
                             size_z=size_z
                         ).generate()
+                    
                     # Process each tile within the base
                     print ('Deconvolving Cycle: '+ base)
                     for tile in tqdm(sorted(tiles, key=int)):
                         print (tile)
-                    #for tile in sorted(tiles_df, key=int):
+                   # for tile in sorted(tiles_df, key=int):
                         tile_files = [f for f in filtered_tifs if f"_s{tile}" in f]
-                        #print (tile_files)
+                        print (tile_files)
                         for channel in sorted(PSF_metadata['channels']):
+                            print ("processing channel: "+channel)
                             output_file_path = os.path.join(base_directory, f'Base_{base}_s{tile}_C0{channel}.tif')
 
                             if os.path.exists(output_file_path):
@@ -471,8 +502,9 @@ def deconvolve_leica(input_dirs,
                                 continue
                             
                             channel_files = [f for f in tile_files if f"_ch{channel}" in f]
+                            #print (channel)
                             stacked_images = np.stack([tifffile.imread(os.path.join(dir_path, f)) for f in channel_files])
-
+                                
                             if chunk_size:
                                 # Convert image data to a chunked dask array
                                 # Set chunk size to include z dimension, according to the specified XY
@@ -500,5 +532,5 @@ def deconvolve_leica(input_dirs,
                                 processed_img = np.asarray(deconvolved.data).astype('uint16')
 
                             tifffile.imwrite(os.path.join(base_directory, f'Base_{base}_s{tile}_C0{channel}.tif'), processed_img)
-
+                            
     return None
