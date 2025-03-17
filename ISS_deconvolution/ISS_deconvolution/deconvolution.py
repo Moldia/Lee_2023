@@ -420,10 +420,16 @@ def deconvolve_leica(input_dirs,
                 split_underscore = pd.Series(filtered_tifs).str.split('_', expand=True)
 
                 #tiles = sorted(split_underscore.iloc[:, -3].unique())
-                tiles = pd.Series(filtered_tifs).str.extract(r'_s(\d+)_')[0].dropna().astype(int)
-                tiles = sorted(tiles.unique()) 
+                #tiles = pd.Series(filtered_tifs).str.extract(r'_s(\d+)_')[0].dropna().astype(int)
+                #tiles = sorted(tiles.unique()) 
                 #print (tiles)
-                tiles = pad_numbers(tiles)
+                #tiles = pad_numbers(tiles)
+                
+                tiles = pd.Series(filtered_tifs).str.extract(r'_s(\d+)_')[0].dropna() # Import as strings
+                #print('tiles: ',tiles)
+                tiles = sorted(tiles.unique(),key=int) # Sort as numbers, but keep as strings
+                print ('sorted tiles: ',tiles)
+		    
                 #tiles_df = pd.DataFrame(tiles)
                 #tiles_df['indexNumber'] = [int(tile.split('s')[-1]) for tile in tiles_df[0]]
                 #tiles_df.sort_values(by=['indexNumber'], ascending=True, inplace=True)
