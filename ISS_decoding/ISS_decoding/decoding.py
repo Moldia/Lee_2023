@@ -137,26 +137,75 @@ def ISS_pipeline(fov, codebook,
     return decoded
 
 def QC_score_calc(decoded):
+    # Lists to store quality metrics per image
     QC_score_list_min = [] 
     QC_score_list_mean = [] 
     QC_score_all_bases = []
+    
+    # Lists to store second peak ratio metrics per image
+    second_peak_list_min = []
+    second_peak_list_mean = []
+    second_peak_all_bases = []
+    
+    # Helper function: compute second-peak ratio for one intensity array
+    def compute_second_peak_ratio(intensity):
+        arr = np.array(intensity)
+        if arr.size == 0:
+            return 0
+        max_val = arr.max()
+        if max_val == 0:
+            return 0
+        # Sort the array
+        sorted_arr = np.sort(arr)
+        # If only one element exists, return 0 for the second-peak
+        if sorted_arr.size < 2:
+            return 0
+        second_val = sorted_arr[-2]
+        return second_val / max_val
+    
+    # Loop over each image in decoded
     for i in range(len(decoded)):
         intensity_array_int = decoded[i] 
         quality_list = []
+        second_peak_ratio_list = []
+        
+        # Loop over each cycle in the current image
         for j in range(len(intensity_array_int)):
-            quality = (np.array(intensity_array_int[j]).max())/(np.array(intensity_array_int[j]).sum()) 
+            cycle = np.array(intensity_array_int[j])
+            cycle_sum = cycle.sum()
+            # Compute quality
+            quality = cycle.max() / cycle_sum if cycle_sum != 0 else 0
             quality_list.append(quality)
-        quality_list =  [x if math.isnan(x) else x for x in quality_list]
-        QC_score_min = np.array(quality_list).min() 
-        QC_score_mean = np.array(quality_list).mean() 
-        QC_score_list_min.append(QC_score_min)
-        QC_score_list_mean.append(QC_score_mean)
+            
+            # Compute second-peak ratio for the cycle
+            spr = compute_second_peak_ratio(intensity_array_int[j])
+            second_peak_ratio_list.append(spr)
+        
+        # Remove any potential NaNs from the lists
+        quality_list = [x if not math.isnan(x) else 0 for x in quality_list]
+        second_peak_ratio_list = [x if not math.isnan(x) else 0 for x in second_peak_ratio_list]
+        
+        # Compute summary statistics for the current image
+        QC_score_list_min.append(np.array(quality_list).min())
+        QC_score_list_mean.append(np.array(quality_list).mean())
         QC_score_all_bases.append(quality_list)
+        
+        second_peak_list_min.append(np.array(second_peak_ratio_list).min())
+        second_peak_list_mean.append(np.array(second_peak_ratio_list).mean())
+        second_peak_all_bases.append(second_peak_ratio_list)
+    
+    # Assuming that decoded can produce a dataframe via to_features_dataframe()
     df = decoded.to_features_dataframe()
     df['quality_minimum'] = QC_score_list_min
     df['quality_mean'] = QC_score_list_mean
     df['quality_all_bases'] = QC_score_all_bases
+    
+    df['second_peak_ratio_min'] = second_peak_list_min
+    df['second_peak_ratio_mean'] = second_peak_list_mean
+    df['second_peak_ratio_all_bases'] = second_peak_all_bases
+    
     return df
+
 
 def process_experiment(exp_path, 
                         output, 
