@@ -38,6 +38,100 @@ from starfish.types import Features, Axes
 test = os.getenv("TESTING") is not None
 import math
 
+def ISS_pipeline_dense(fov, codebook,
+                 register = True, 
+                 register_dapi = True,
+                 masking_radius = 15,
+                 threshold = 0.002,
+                 sigma_vals = [1, 10, 30], # min, max and number
+                 decode_mode = 'PRMC', # or MD
+                 channel_normalization = 'MH' # if set to anything else, will do ClipPercentileToZero
+                ):
+    print('getting images')
+    primary_image = fov.get_image(FieldOfView.PRIMARY_IMAGES) # primary images
+    nuclei = fov.get_image('nuclei')
+    dots = primary_image.reduce({Axes.CH, Axes.ROUND}, func="max") # reference round for image registration
+    # register the raw image
+    if register == True: 
+        if register_dapi == True:
+            nuclei_round1 = nuclei.sel({Axes.ROUND: 1, Axes.CH: 0, Axes.ZPLANE: 0})
+            print('registering images based on nuclei stain')
+            learn_translation = LearnTransform.Translation(reference_stack=nuclei_round1, axes=Axes.ROUND, upsampling=1000)
+            transforms_list = learn_translation.run(nuclei)
+        else:  
+            print('creating reference images')
+            dots = primary_image.reduce({Axes.CH, Axes.ROUND}, func="max") # reference round for image registration
+            print('registering images')
+            learn_translation = LearnTransform.Translation(reference_stack=dots, axes=Axes.ROUND, upsampling=100)
+            transforms_list = learn_translation.run(primary_image.reduce({Axes.CH, Axes.ZPLANE}, func="max"))
+
+        warp = ApplyTransform.Warp()
+        registered = warp.run(primary_image, transforms_list=transforms_list, in_place=False, verbose=True)
+        # filter registered data
+        masking_radius = masking_radius
+        filt = Filter.WhiteTophat(masking_radius, is_volume=False)
+        #filtered = filt.run(primary_image, verbose=True, in_place=False)
+        filtered = filt.run(registered, verbose=True, in_place=False)
+    else: 
+        print('not registering images')
+        # filter raw data
+        masking_radius = masking_radius
+        filt = Filter.WhiteTophat(masking_radius, is_volume=False)
+        filtered = filt.run(primary_image, verbose=True, in_place=False)
+
+    # normalize the channel intensities
+    print('normalizing channel intensities')
+    if channel_normalization == 'MH':
+        sbp = starfish.image.Filter.MatchHistograms({Axes.CH, Axes.ROUND})
+    else: 
+        sbp = starfish.image.Filter.ClipPercentileToZero(p_min=80, p_max=99.999, level_method=Levels.SCALE_BY_CHUNK)
+
+    scaled = sbp.run(filtered, n_processes = 1, in_place=False)
+
+    bd = FindSpots.BlobDetector(
+        min_sigma=sigma_vals[0],
+        max_sigma=sigma_vals[1],
+        num_sigma=sigma_vals[2],
+        threshold=threshold, # this is set quite low which means that we will capture a lot of signals
+        measurement_type='mean',
+    )
+
+    # Instead of hardcoding channels, determine available channels dynamically.
+    # Assuming primary_image is an xarray DataArray, we can get channel indices like this:
+    channels = primary_image.coords[Axes.CH].values
+
+    decoded_list = []
+    intensities_list = []
+
+    if decode_mode == 'PRMC':
+        print('decoding with PerRoundMaxChannel')
+        decoder = DecodeSpots.PerRoundMaxChannel(codebook=codebook)
+
+    for ch in channels:
+        # select a reference image for the current channel from round 0 and zplane 0
+        channel_ref = primary_image.sel({Axes.ROUND: 0, Axes.CH: ch, Axes.ZPLANE: 0})
+        print(f'locating spots for channel {ch}')
+        spots = bd.run(reference_image=channel_ref, image_stack=scaled)
+
+        if decode_mode == 'PRMC':
+            decoded = decoder.run(spots=spots)
+            print(f'Decoded spots: channel {ch}')
+            # Calculate QC score for this channel's decoded spots and add to the list
+            decoded_list.append(QC_score_calc(decoded))
+
+        # Build spot traces for the current channel
+        intensities = build_spot_traces_exact_match(spots)
+        intensities_list.append(intensities)
+
+    # Concatenate QC score dataframes for all channels if decoding was performed
+    if decode_mode == 'PRMC' and decoded_list:
+        decoded = pd.concat(decoded_list)
+    else:
+        decoded = None
+
+    # Optionally, you might want to return or further process decoded, intensities_list, etc.
+    return decoded
+
 def ISS_pipeline(fov, codebook,
                 register = True, 
                 register_dapi = True,
@@ -209,16 +303,14 @@ def QC_score_calc(decoded):
 
 def process_experiment(exp_path, 
                         output, 
-                        register = False, 
-                        register_dapi = False,
-                        masking_radius = 15, 
-                        threshold = 0.002, 
-                        sigma_vals = [1, 10, 30], # min, max and number
-                        decode_mode = 'PRMC',
-                        normalization_method = 'MH' # or MD
-                ):
-    
-
+                        register=False, 
+                        register_dapi=False,
+                        masking_radius=15, 
+                        threshold=0.002, 
+                        sigma_vals=[1, 10, 30],  # min, max and number
+                        decode_mode='PRMC',
+                        normalization_method='MH',  # or other method
+                        dense=False):
     # create output folder if not exists
     if not os.path.exists(output):
         os.makedirs(output)
@@ -230,7 +322,7 @@ def process_experiment(exp_path,
     # from output, find the FOVs not processed 
     csv_files = sorted(os.listdir(output))
     try:
-        fovs_done = list(pd.DataFrame(csv_files)[0].str.split('.',expand = True)[0])
+        fovs_done = list(pd.DataFrame(csv_files)[0].str.split('.', expand=True)[0])
     except KeyError:
         print('no FOVS done')
         fovs_done = []
@@ -239,10 +331,41 @@ def process_experiment(exp_path,
     not_done = sorted(set(all_fovs).difference(set(fovs_done)))
     
     for i in not_done:
-        print('decoding '+i)
-        decoded = ISS_pipeline(experiment[i], experiment.codebook, register, register_dapi, masking_radius, threshold, sigma_vals, decode_mode, normalization_method)
+        print('decoding ' + i)
+        if dense:
+            # Override decode_mode if set to 'MD', because it is not applicable in dense mode.
+            if decode_mode == 'MD':
+                print('Warning: decode_mode "MD" is not applicable in dense mode. Overriding to "PRMC".')
+                decode_mode_to_use = 'PRMC'
+            else:
+                decode_mode_to_use = decode_mode
+            decoded = ISS_pipeline_dense(
+                experiment[i], 
+                experiment.codebook, 
+                register=register, 
+                register_dapi=register_dapi, 
+                masking_radius=masking_radius, 
+                threshold=threshold, 
+                sigma_vals=sigma_vals, 
+                decode_mode=decode_mode_to_use, 
+                channel_normalization=normalization_method
+            )
+        else:
+            decoded = ISS_pipeline(
+                experiment[i], 
+                experiment.codebook, 
+                register=register, 
+                register_dapi=register_dapi, 
+                masking_radius=masking_radius, 
+                threshold=threshold, 
+                sigma_vals=sigma_vals, 
+                decode_mode=decode_mode, 
+                normalization_method=normalization_method
+            )
         df = QC_score_calc(decoded)
-        df.to_csv(output + i +'.csv')
+        # Ensure proper file path concatenation
+        output_path = os.path.join(output, i + '.csv')
+        df.to_csv(output_path)
 
 def concatenate_starfish_output(path, outpath,tag=''):
     
