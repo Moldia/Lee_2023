@@ -138,6 +138,7 @@ dependencies:
     - shapely==1.8.1.post1
     - simplejson==3.17.6
     - split-image==2.0.1
+    - readlif==0.6.5
     - tenacity==8.0.1
     - threadpoolctl==3.1.0
     - tifffile==2022.2.9

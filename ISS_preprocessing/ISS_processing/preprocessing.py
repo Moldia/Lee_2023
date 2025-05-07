@@ -15,6 +15,9 @@ import mat73
 import pathlib
 import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
+import requests
+from readlif.reader import LifFile
+import xml.etree.ElementTree as ET
 
 
 
@@ -795,3 +798,136 @@ def process_czi(input_file, outpath, mip=True, cycle=0, tile_size_x=2048, tile_s
             f.write(xml_str)
 
     return "Processing complete."
+
+def max_project_z(image, m, c):
+    # Initialize a list to hold all Z-plane data
+    z_planes = []
+
+    # Iterate over all Z-planes for the given timepoint and channel
+    for z_frame in image.get_iter_z(m=m, c=c):
+        # Convert the Pillow Image to a NumPy array
+        z_data = np.array(z_frame)
+        #print (z_data.shape)
+        z_planes.append(z_data)
+
+    # Stack all Z-planes along a new axis
+    z_stack = np.stack(z_planes, axis=0)
+    #print (z_stack.shape)
+
+    # Perform maximum intensity projection along the Z-axis (axis=0)
+    max_projection = np.max(z_stack, axis=0)
+
+    return max_projection
+
+def lif_mipping(lif_path, output_folder, cycle):
+    file = LifFile(lif_path)
+    
+    os.makedirs(output_folder, exist_ok=True)
+    if len(file.image_list) > 1:
+        for index, image_dict in enumerate(file.image_list):
+            image_name = image_dict['name']
+            print (image_name)
+            mosaic=image_dict.get('mosaic_position', None)
+            #print (mosaic)
+            
+            # Build XML structure
+            data = ET.Element("Data")
+            image = ET.SubElement(data, "Image", TextDescription="")
+            attachment = ET.SubElement(image, "Attachment", Name="TileScanInfo", Application="LAS AF", FlipX="0", FlipY="0", SwapXY="0")
+
+            for x, y, pos_x, pos_y in mosaic:
+                ET.SubElement(attachment, "Tile", FieldX=str(x), FieldY=str(y),
+                              PosX=f"{pos_x:.10f}", PosY=f"{pos_y:.10f}")
+
+            # Create tree and write to file
+            tree = ET.ElementTree(data)
+
+            regionID=index+1
+            output_region=f'_R{regionID}'
+            output_subfolder=os.path.join(output_folder, output_region)
+            mipped_subfolder = f"{output_subfolder}/preprocessing/mipped/Base_{cycle}"
+            os.makedirs(mipped_subfolder, exist_ok=True)
+            os.makedirs(mipped_subfolder+'/MetaData', exist_ok=True)
+            print(f"Extracting metadata for: {image_name}")
+            image_name = image_name.replace('/', '_')
+            tree.write(f"{mipped_subfolder}/MetaData/{image_name}.xml", encoding="utf-8", xml_declaration=True)
+            print(f"Processing Image {index}: {image_name}")
+            image = file.get_image(index)
+            channels = image_dict['channels']
+            dims = image_dict['dims']
+
+            if dims.m == 1:
+                print("Single tile imaging.")
+                for c in range(channels):  # Loop through each channel
+                    max_projected = max_project_z(image, c)  # (y, x)
+                    # Clean filename
+                    clean_name = f"Base_{cycle}"
+                    filename = f"{clean_name}_s00_C0{c}.tif"
+                    output_path = os.path.join(mipped_subfolder, filename)
+
+                    tifffile.imwrite(output_path, max_projected.astype(np.uint16))
+                    print(f"Saved: {output_path}")
+
+            else:
+                for m in range(dims.m):  # Loop through each tile
+                    for c in range(channels):  # Loop through each channel
+                        max_projected = max_project_z(image,m, c)  # (y, x)
+                        # Clean filename
+                        clean_name = f"Base_{cycle}"
+                        filename = f"{clean_name}_s{m:02d}_C0{c}.tif"
+                        output_path = os.path.join(mipped_subfolder, filename)
+
+                        tifffile.imwrite(output_path, max_projected.astype(np.uint16))
+                        print(f"Saved: {output_path}")
+    else:
+        mipped_subfolder = f"{output_folder}/preprocessing/mipped/Base_{cycle}"
+        os.makedirs(mipped_subfolder, exist_ok=True)
+        os.makedirs(mipped_subfolder+'/MetaData', exist_ok=True)
+
+        for index, image_dict in enumerate(file.image_list):
+            image_name = image_dict['name']
+            mosaic=image_dict.get('mosaic_position', None)
+            #print (mosaic)
+            
+            # Build XML structure
+            data = ET.Element("Data")
+            image = ET.SubElement(data, "Image", TextDescription="")
+            attachment = ET.SubElement(image, "Attachment", Name="TileScanInfo", Application="LAS AF", FlipX="0", FlipY="0", SwapXY="0")
+
+            for x, y, pos_x, pos_y in mosaic:
+                ET.SubElement(attachment, "Tile", FieldX=str(x), FieldY=str(y),
+                              PosX=f"{pos_x:.10f}", PosY=f"{pos_y:.10f}")
+
+            # Create tree and write to file
+            tree = ET.ElementTree(data)
+            print(f"Extracting metadata for: {image_name}")
+            tree.write(f"{mipped_subfolder}/MetaData/{image_name}.xml", encoding="utf-8", xml_declaration=True)
+            
+            print(f"Processing Image {index}: {image_name}")
+            image = file.get_image(index)
+            channels = image_dict['channels']
+            dims = image_dict['dims']
+
+            if dims.m == 1:
+                print("Single tile imaging.")
+                for c in range(channels):  # Loop through each channel
+                    max_projected = max_project_z(image, c)  # (y, x)
+                    # Clean filename
+                    clean_name = f"Base_{cycle}"
+                    filename = f"{clean_name}_s00_C0{c}.tif"
+                    output_path = os.path.join(mipped_subfolder, filename)
+
+                    tifffile.imwrite(output_path, max_projected.astype(np.uint16))
+                    print(f"Saved: {output_path}")
+
+            else:
+                for m in range(dims.m):  # Loop through each tile
+                    for c in range(channels):  # Loop through each channel
+                        max_projected = max_project_z(image,m, c)  # (y, x)
+                        # Clean filename
+                        clean_name = f"Base_{cycle}"
+                        filename = f"{clean_name}_s{m:02d}_C0{c}.tif"
+                        output_path = os.path.join(mipped_subfolder, filename)
+
+                        tifffile.imwrite(output_path, max_projected.astype(np.uint16))
+                        print(f"Saved: {output_path}")
