@@ -329,9 +329,14 @@ def deconvolve_leica(input_dirs,
                     print ('Extracting metadata')
                     metadata_dir = os.path.join(dir_path, 'Metadata')
                     metadata_files = [f for f in os.listdir(metadata_dir) if region in f]
+                    metadata_file = [f for f in metadata_files if 'properties' not in f]
+                    
                     if metadata_files:
                         os.makedirs(os.path.join(base_directory, 'MetaData'), exist_ok=True)
-                        custom_copy(os.path.join(metadata_dir, metadata_files[0]), os.path.join(base_directory, 'MetaData'))
+                        custom_copy(
+                            os.path.join(metadata_dir, metadata_file),
+                            os.path.join(base_directory, 'MetaData')
+                        )
                     
                     # Extracts the first tile to calculate its Z depth
                     print ('Calculating the PSF')
@@ -453,13 +458,20 @@ def deconvolve_leica(input_dirs,
                     base_directory = os.path.join(mipped_directory, f'Base_{base}')
                     os.makedirs(base_directory, exist_ok=True)
                     #print(base_directory)
+			
                     # Copy metadata if it exists
                     print ('Extracting metadata')
                     metadata_dir = os.path.join(dir_path, 'Metadata')
                     metadata_files = [f for f in os.listdir(metadata_dir) if region in f]
+                    metadata_file = [f for f in metadata_files if 'properties' not in f]
+                    
                     if metadata_files:
                         os.makedirs(os.path.join(base_directory, 'MetaData'), exist_ok=True)
-                        custom_copy(os.path.join(metadata_dir, metadata_files[0]), os.path.join(base_directory, 'MetaData'))
+                        custom_copy(
+                            os.path.join(metadata_dir, metadata_file),
+                            os.path.join(base_directory, 'MetaData')
+                        )
+			    
                     # Extracts the first tile to calculate its Z depth
                     print ('Calculating the PSF')
                     #print (filtered_tifs)
