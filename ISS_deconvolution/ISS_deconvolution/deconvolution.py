@@ -329,7 +329,7 @@ def deconvolve_leica(input_dirs,
                     print ('Extracting metadata')
                     metadata_dir = os.path.join(dir_path, 'Metadata')
                     metadata_files = [f for f in os.listdir(metadata_dir) if region in f]
-                    metadata_file = [f for f in metadata_files if 'properties' not in f]
+                    metadata_file = [f for f in metadata_files if 'properties' not in f][0]
                     
                     if metadata_files:
                         os.makedirs(os.path.join(base_directory, 'MetaData'), exist_ok=True)
@@ -463,7 +463,7 @@ def deconvolve_leica(input_dirs,
                     print ('Extracting metadata')
                     metadata_dir = os.path.join(dir_path, 'Metadata')
                     metadata_files = [f for f in os.listdir(metadata_dir) if region in f]
-                    metadata_file = [f for f in metadata_files if 'properties' not in f]
+                    metadata_file = [f for f in metadata_files if 'properties' not in f][0]
                     
                     if metadata_files:
                         os.makedirs(os.path.join(base_directory, 'MetaData'), exist_ok=True)
